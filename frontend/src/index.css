@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  background-color: #f6eedd;
+  color: #163a5f;
+}
+
+* {
+  scroll-behavior: smooth;
+}
+
+/* Odak halkası - erişilebilirlik */
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid #c1440e;
+  outline-offset: 2px;
+}

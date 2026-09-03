@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#163A5F" />
+    <meta
+      name="description"
+      content="Türkiye Gezi Rehberi ve Quiz - şehirleri keşfet, bilgini test et."
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      // React yüklenmeden önce doğru temayı uygula, aksi halde ilk açılışta
+      // kısa bir an yanlış temanın görünmesine (FOUC) neden olabilir.
+      (function () {
+        try {
+          var saved = localStorage.getItem("gezi-rehberi-tema");
+          var theme =
+            saved === "dark" || saved === "light"
+              ? saved
+              : window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+          if (theme === "dark") {
+            document.documentElement.classList.add("dark");
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <title>Türkiye Gezi Rehberi</title>
+  </head>
+  <body>
+    <noscript>Bu uygulamayı çalıştırmak için JavaScript'i etkinleştirmelisiniz.</noscript>
+    <div id="root"></div>
+  </body>
+</html>
