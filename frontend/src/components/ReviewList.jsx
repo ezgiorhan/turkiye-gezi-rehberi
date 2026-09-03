@@ -89,9 +89,10 @@ export default function ReviewList({ reviews, loading, onDeleted }) {
                 </span>
                 {mine && (
                   <button
+                    type="button"
                     onClick={() => handleDelete(r._id)}
                     disabled={deletingId === r._id}
-                    className="text-xs font-medium text-cini-kiremit hover:underline disabled:opacity-50"
+                    className="min-h-[40px] min-w-[40px] rounded-full px-3 py-2 text-xs font-medium text-cini-kiremit active:bg-cini-kiremit/10 disabled:opacity-50"
                   >
                     {deletingId === r._id ? "Siliniyor…" : "🗑️ Sil"}
                   </button>
@@ -106,7 +107,7 @@ export default function ReviewList({ reviews, loading, onDeleted }) {
                 src={getUploadUrl(r.photoUrl)}
                 alt={`${r.authorName} tarafından paylaşılan fotoğraf`}
                 loading="lazy"
-                className="mt-3 max-h-72 w-full rounded-lg object-cover"
+                className="mt-3 aspect-[4/3] w-full rounded-lg object-cover"
               />
             )}
           </div>
