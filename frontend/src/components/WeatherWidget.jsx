@@ -1,43 +1,29 @@
 import React, { useEffect, useState } from "react";
 import cityMeta from "../data/cityMeta";
 
-// WMO hava durumu kodlarını basit bir emoji + Türkçe açıklamaya çevirir.
-// Kaynak: Open-Meteo WMO Weather interpretation codes.
 function describeWeatherCode(code) {
   const map = {
-    0: { icon: "☀️", text: "Açık" },
-    1: { icon: "🌤️", text: "Çoğunlukla açık" },
-    2: { icon: "⛅", text: "Parçalı bulutlu" },
-    3: { icon: "☁️", text: "Kapalı" },
-    45: { icon: "🌫️", text: "Sisli" },
-    48: { icon: "🌫️", text: "Kırağı sisi" },
-    51: { icon: "🌦️", text: "Hafif çisenti" },
-    53: { icon: "🌦️", text: "Çisenti" },
-    55: { icon: "🌦️", text: "Yoğun çisenti" },
-    61: { icon: "🌧️", text: "Hafif yağmur" },
-    63: { icon: "🌧️", text: "Yağmurlu" },
-    65: { icon: "🌧️", text: "Şiddetli yağmur" },
-    71: { icon: "🌨️", text: "Hafif kar" },
-    73: { icon: "🌨️", text: "Karlı" },
-    75: { icon: "❄️", text: "Yoğun kar" },
-    80: { icon: "🌦️", text: "Sağanak" },
-    81: { icon: "🌧️", text: "Kuvvetli sağanak" },
-    82: { icon: "⛈️", text: "Şiddetli sağanak" },
-    95: { icon: "⛈️", text: "Gök gürültülü fırtına" },
-    96: { icon: "⛈️", text: "Dolu ile fırtına" },
-    99: { icon: "⛈️", text: "Şiddetli dolu fırtınası" },
+    0: { icon: "wb_sunny", text: "Açık & Güneşli" },
+    1: { icon: "partly_cloudy_day", text: "Çoğunlukla Açık" },
+    2: { icon: "partly_cloudy_day", text: "Parçalı Bulutlu" },
+    3: { icon: "cloud", text: "Kapalı & Bulutlu" },
+    45: { icon: "foggy", text: "Sisli" },
+    48: { icon: "foggy", text: "Kırağı Sisi" },
+    51: { icon: "rainy", text: "Hafif Çisenti" },
+    61: { icon: "rainy", text: "Yağmurlu" },
+    71: { icon: "ac_unit", text: "Karlı" },
+    80: { icon: "rainy", text: "Sağanak" },
+    95: { icon: "thunderstorm", text: "Gök Gürültülü Fırtına" },
   };
-  return map[code] || { icon: "🌡️", text: "Bilinmiyor" };
+  return map[code] || { icon: "wb_sunny", text: "Ilıman" };
 }
 
-// Şehrin anlık hava durumunu, koordinatlar üzerinden ücretsiz ve API anahtarı
-// gerektirmeyen Open-Meteo servisinden çeker.
 export default function WeatherWidget({ citySlug }) {
-  const [weather, setWeather] = useState(undefined); // undefined = yükleniyor, null = hata
+  const [weather, setWeather] = useState(undefined);
   const meta = cityMeta[citySlug];
 
   useEffect(() => {
-    if (!meta) return;
+    if (!meta || !meta.lat || !meta.lng) return;
     let active = true;
 
     fetch(
@@ -60,34 +46,38 @@ export default function WeatherWidget({ citySlug }) {
 
   if (weather === undefined) {
     return (
-      <div className="mb-8 flex items-center gap-3 rounded-lg border border-cini-altin/30 bg-white/60 dark:bg-cini-cobalt/40 p-4">
-        <div className="h-8 w-8 animate-pulse rounded-full bg-cini-cobalt/10 dark:bg-cini-krem/10" />
-        <span className="text-sm text-cini-cobalt/60 dark:text-cini-krem/60">Hava durumu yükleniyor…</span>
+      <div className="mb-6 flex items-center gap-3 rounded-2xl bg-surface p-4 border border-borderline">
+        <div className="h-6 w-6 animate-pulse rounded-full bg-slate-200" />
+        <span className="text-xs text-on-surface-variant">Hava durumu yükleniyor...</span>
       </div>
     );
   }
 
-  if (!weather) {
-    return null; // sessizce gizle - kritik bir özellik değil
-  }
+  if (!weather) return null;
 
   const { icon, text } = describeWeatherCode(weather.weathercode);
 
   return (
-    <div className="mb-8 flex items-center justify-between rounded-lg border border-cini-altin/30 bg-white/60 dark:bg-cini-cobalt/40 p-4">
+    <div
+      className="mb-6 flex items-center justify-between rounded-2xl p-4 shadow-sm"
+      style={{
+        backgroundColor: "rgb(255, 255, 255)",
+        border: "1px solid rgb(231, 223, 213)",
+      }}
+    >
       <div className="flex items-center gap-3">
-        <span className="text-3xl">{icon}</span>
+        <span className="material-symbols-outlined text-amber-500 text-3xl">{icon}</span>
         <div>
-          <div className="text-lg font-semibold text-cini-cobalt dark:text-cini-krem">
+          <div className="text-base font-bold text-on-surface">
             {Math.round(weather.temperature)}°C
           </div>
-          <div className="text-xs text-cini-cobalt/60 dark:text-cini-krem/60">{text}</div>
+          <div className="text-xs text-on-surface-variant">{text}</div>
         </div>
       </div>
-      <div className="text-right text-xs text-cini-cobalt/50 dark:text-cini-krem/50">
-        Rüzgar {Math.round(weather.windspeed)} km/sa
+      <div className="text-right text-xs text-on-surface-variant font-medium">
+        Rüzgar: {Math.round(weather.windspeed)} km/sa
         <br />
-        Open-Meteo verisi
+        <span className="text-[10px] text-primary">Open-Meteo İstasyonu</span>
       </div>
     </div>
   );

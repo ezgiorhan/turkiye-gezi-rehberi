@@ -2,12 +2,8 @@ import React, { useEffect, useState } from "react";
 import { getPlaceThumbnail } from "../utils/wikiImage";
 import placeImageOverrides from "../data/placeImageOverrides";
 
-// "placeName" (ve isteğe bağlı "cityName") ile gösterilecek görseli bulur.
-// Önce elle tanımlanmış override listesine bakar (bkz. src/data/placeImageOverrides.js);
-// orada yoksa Wikipedia'dan otomatik arama yapar. Görsel hiçbir yerde bulunamazsa
-// zarifçe bir simge + degrade arka plana düşer, kırık resim ikonu göstermez.
 export default function PlaceImage({ placeName, cityName, alt }) {
-  const [src, setSrc] = useState(undefined); // undefined = yükleniyor, null = görsel yok
+  const [src, setSrc] = useState(undefined);
 
   useEffect(() => {
     let active = true;
@@ -30,7 +26,7 @@ export default function PlaceImage({ placeName, cityName, alt }) {
 
   if (src === undefined) {
     return (
-      <div className="aspect-[4/3] w-full animate-pulse rounded-t-lg bg-cini-cobalt/10 dark:bg-cini-krem/10" />
+      <div className="aspect-[4/3] w-full animate-pulse rounded-t-lg bg-cini-cobalt/10" />
     );
   }
 

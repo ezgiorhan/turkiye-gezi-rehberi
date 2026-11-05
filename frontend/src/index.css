@@ -2,19 +2,45 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  background-color: #f6eedd;
-  color: #163a5f;
+@layer base {
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: #f5f0eb;
+    color: #1e1b1a;
+    font-family: "Plus Jakarta Sans", sans-serif;
+  }
 }
 
-* {
-  scroll-behavior: smooth;
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Odak halkası - erişilebilirlik */
-a:focus-visible,
-button:focus-visible {
-  outline: 2px solid #c1440e;
-  outline-offset: 2px;
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f5f0eb;
+}
+::-webkit-scrollbar-thumb {
+  background: #bdc9c6;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #0f766e;
 }

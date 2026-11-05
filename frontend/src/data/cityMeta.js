@@ -1,3 +1,22 @@
+// Türkiye'nin 81 ili için sabit referans verileri (plaka kodu, rakım, yüzölçümü,
+// nüfus, enlem/boylam). Bu veriler MongoDB'ye değil, doğrudan frontend'e
+// gömülüdür çünkü değişmeyen coğrafi sabitler (plaka, rakım, yüzölçüm, koordinat)
+// ile nadiren değişen bir değer (nüfus) içerir.
+//
+// !!! ÖNEMLİ: Nüfus rakamları YAKLAŞIKTIR (TÜİK ADNKS verilerine dayanır) ve
+// her yıl güncellenir. Kesin ve güncel rakamlar için TÜİK'in resmi istatistik
+// portalünü (biruni.tuik.gov.tr) kontrol etmen ve bu dosyayı periyodik olarak
+// güncellemen önerilir. Rakım ve yüzölçümü değerleri il merkezine/genel il
+// sınırına göre yaklaşık değerlerdir.
+//
+// Alanlar:
+//   plate: plaka kodu (1-81)
+//   elevation: il merkezinin deniz seviyesinden yüksekliği (metre)
+//   area: il yüzölçümü (km²)
+//   population: yaklaşık nüfus (TÜİK ADNKS, güncellenmesi önerilir)
+//   lat, lng: il merkezinin yaklaşık enlem/boylamı (hava durumu ve mesafe
+//             hesaplamaları için kullanılır)
+
 const cityMeta = {
   istanbul: { plate: 34, elevation: 40, area: 5461, population: 15900000, lat: 41.0082, lng: 28.9784 },
   izmir: { plate: 35, elevation: 2, area: 11891, population: 4500000, lat: 38.4237, lng: 27.1428 },

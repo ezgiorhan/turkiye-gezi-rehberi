@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getCityQuiz, submitQuizResult, getLeaderboard } from "../api";
+import { useAuth } from "../context/AuthContext";
 
 const NAME_STORAGE_KEY = "gezi-rehberi-oyuncu-adi";
 
@@ -14,20 +15,26 @@ function formatDuration(seconds) {
 function LeaderboardTable({ entries, highlightName }) {
   if (!entries || entries.length === 0) {
     return (
-      <p className="py-4 text-center text-sm text-cini-cobalt/60 dark:text-cini-krem/60">
-        Bu şehir için henüz kimse quiz çözmedi. İlk sırada sen olabilirsin!
+      <p className="py-4 text-center text-body-sm text-on-surface-variant">
+        Bu şehir için henüz kimse quiz çözmedi. İlk sırada siz olabilirsiniz!
       </p>
     );
   }
   return (
-    <div className="overflow-hidden rounded-xl border border-cini-altin/30">
-      <table className="w-full text-left text-sm">
-        <thead className="bg-cini-cobalt text-cini-krem">
+    <div
+      className="overflow-hidden rounded-2xl border"
+      style={{
+        backgroundColor: "rgb(255, 255, 255)",
+        border: "1px solid rgb(231, 223, 213)",
+      }}
+    >
+      <table className="w-full text-left text-body-sm">
+        <thead className="bg-primary text-on-primary font-label-md">
           <tr>
-            <th className="px-3 py-2">#</th>
-            <th className="px-3 py-2">İsim</th>
-            <th className="px-3 py-2 text-right">Skor</th>
-            <th className="px-3 py-2 text-right">Süre</th>
+            <th className="px-4 py-3">#</th>
+            <th className="px-4 py-3">Gezgin</th>
+            <th className="px-4 py-3 text-right">Skor</th>
+            <th className="px-4 py-3 text-right">Süre</th>
           </tr>
         </thead>
         <tbody>
@@ -39,19 +46,23 @@ function LeaderboardTable({ entries, highlightName }) {
             return (
               <tr
                 key={entry._id || `${entry.playerName}-${i}`}
-                className={`border-t border-cini-altin/20 ${
-                  isMe ? "bg-cini-turkuaz/15 font-semibold" : "odd:bg-white/40 dark:bg-cini-cobalt/40"
+                className={`border-t border-borderline transition-colors ${
+                  isMe
+                    ? "bg-teal-50 font-bold text-primary"
+                    : "odd:bg-surface-container-low/50 hover:bg-surface-container"
                 }`}
               >
-                <td className="px-3 py-2">
+                <td className="px-4 py-3">
                   {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}
                 </td>
-                <td className="px-3 py-2">{entry.playerName}</td>
-                <td className="px-3 py-2 text-right">
+                <td className="px-4 py-3 font-medium">{entry.playerName}</td>
+                <td className="px-4 py-3 text-right font-semibold">
                   {entry.score}/{entry.total}{" "}
-                  <span className="text-cini-cobalt/50 dark:text-cini-krem/50">(%{entry.percent})</span>
+                  <span className="text-on-surface-variant text-xs font-normal">
+                    (%{entry.percent})
+                  </span>
                 </td>
-                <td className="px-3 py-2 text-right text-cini-cobalt/70 dark:text-cini-krem/70">
+                <td className="px-4 py-3 text-right text-on-surface-variant">
                   {formatDuration(entry.timeTakenSeconds)}
                 </td>
               </tr>
@@ -65,6 +76,7 @@ function LeaderboardTable({ entries, highlightName }) {
 
 export default function Quiz() {
   const { slug } = useParams();
+  const { user } = useAuth();
 
   const [status, setStatus] = useState("loading"); // loading | ready | empty | error
   const [quizData, setQuizData] = useState(null);
@@ -89,9 +101,6 @@ export default function Quiz() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
 
-  // Şehir/quiz yüklenmeden önce de güvenle okunabilecek türetilmiş değerler.
-  // Bunları hook'lardan ÖNCE değil ama erken return'lerden ÖNCE tanımlıyoruz ki
-  // aşağıdaki useEffect her render'da (loading/ready fark etmeksizin) çağrılsın.
   const questions = quizData?.quiz ?? [];
   const total = questions.length;
 
@@ -106,17 +115,15 @@ export default function Quiz() {
     try {
       const savedName = window.localStorage.getItem(NAME_STORAGE_KEY);
       if (savedName) setPlayerName(savedName);
-    } catch {
-      // localStorage kullanılamıyorsa sessizce yok say
-    }
+    } catch {}
   }, [slug]);
 
-  // Quiz bitince: sonucu MongoDB'ye gönder, ardından herkese açık sıralamayı çek.
-  // ÖNEMLİ: Bu useEffect, aşağıdaki "status === loading/error/empty" early return'lerinden
-  // ÖNCE tanımlanmalı. Aksi halde bu effect bazı render'larda (örn. status "loading" iken)
-  // hiç çağrılmaz, bazılarında çağrılır; bu da React'in "Rendered more hooks than during
-  // the previous render" hatasını fırlatmasına neden olur. Hook sırası her render'da
-  // birebir aynı olmalıdır.
+  useEffect(() => {
+    if (user?.name) {
+      setPlayerName(user.name.slice(0, 30));
+    }
+  }, [user]);
+
   useEffect(() => {
     if (phase !== "finished" || submittedRef.current) return;
     submittedRef.current = true;
@@ -154,33 +161,55 @@ export default function Quiz() {
       })
       .catch(() => {
         setSubmitError(
-          "Sonucun kaydedilirken bir sorun oluştu, ama skorunu aşağıda görebilirsin."
+          "Sonucunuz kaydedilirken bir sorun oluştu, ancak skorunuzu görebilirsiniz."
         );
       })
       .finally(() => {
         setSubmitting(false);
         setLeaderboardLoading(false);
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase]);
+  }, [phase, playerName, score, slug, timeTaken, total]);
 
   if (status === "loading") {
-    return <p className="text-center text-cini-cobalt/60 dark:text-cini-krem/60">Quiz yükleniyor…</p>;
-  }
-  if (status === "error") {
     return (
-      <p className="text-center text-cini-kiremit">
-        Quiz yüklenirken bir sorun oluştu.
-      </p>
+      <div className="max-w-xl mx-auto py-20 text-center">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="font-body-md text-body-md text-on-surface-variant">Quiz yükleniyor...</p>
+      </div>
     );
   }
+
+  if (status === "error") {
+    return (
+      <div className="max-w-xl mx-auto py-20 text-center px-4">
+        <div className="p-10 rounded-3xl bg-surface border border-error/30 text-error shadow-md">
+          <p className="font-headline-sm text-headline-sm font-bold">Quiz yüklenirken bir sorun oluştu.</p>
+          <Link to={`/sehir/${slug}`} className="mt-4 inline-block font-label-md text-primary underline">
+            Şehir sayfasına dön
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (status === "empty") {
     return (
-      <div className="text-center">
-        <p className="mb-4 text-cini-cobalt dark:text-cini-krem">Bu şehir için henüz quiz eklenmedi.</p>
-        <Link to={`/sehir/${slug}`} className="text-cini-turkuaz underline">
-          Şehir sayfasına dön
-        </Link>
+      <div className="max-w-xl mx-auto py-20 text-center px-4">
+        <div className="p-10 rounded-3xl bg-surface border border-borderline shadow-md">
+          <span className="text-4xl">📝</span>
+          <h2 className="font-headline-md text-headline-md font-bold text-on-surface mt-3">
+            Bu Şehir İçin Henüz Quiz Eklenmedi
+          </h2>
+          <p className="font-body-md text-body-md text-on-surface-variant mt-2 mb-6">
+            Yakında bu şehir için eğlenceli bilgi soruları burada olacak.
+          </p>
+          <Link
+            to={`/sehir/${slug}`}
+            className="inline-flex items-center gap-2 px-space-xl py-space-md rounded-xl bg-primary text-on-primary font-label-lg text-label-lg"
+          >
+            Şehir Sayfasına Dön
+          </Link>
+        </div>
       </div>
     );
   }
@@ -189,7 +218,7 @@ export default function Quiz() {
     e.preventDefault();
     const cleanName = playerName.trim();
     if (!cleanName) {
-      setNameError("Sıralamada görünmen için bir isim yazmalısın.");
+      setNameError("Lütfen sıralamada görünecek bir isim girin.");
       return;
     }
     if (cleanName.length > 30) {
@@ -199,9 +228,7 @@ export default function Quiz() {
     setNameError(null);
     try {
       window.localStorage.setItem(NAME_STORAGE_KEY, cleanName);
-    } catch {
-      // yok say
-    }
+    } catch {}
     startTimeRef.current = Date.now();
     setPhase("playing");
   };
@@ -239,182 +266,248 @@ export default function Quiz() {
     setSubmitError(null);
   };
 
-  // --- İSİM EKRANI ---
+  // --- 1. İSİM GİRİŞ EKRANI ---
   if (phase === "name") {
     return (
-      <div className="mx-auto max-w-md">
-        <Link to={`/sehir/${slug}`} className="text-sm text-cini-turkuaz hover:underline">
-          ← {quizData.name} sayfasına dön
+      <div className="max-w-md mx-auto py-space-xl px-4">
+        <Link
+          to={`/sehir/${slug}`}
+          className="inline-flex items-center gap-1 font-label-md text-label-md text-primary hover:underline mb-space-md"
+        >
+          <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+          <span>{quizData.name} Sayfasına Dön</span>
         </Link>
 
         <form
           onSubmit={handleStart}
-          className="mt-6 rounded-2xl border border-cini-altin/40 bg-white/70 dark:bg-cini-cobalt/40 p-8 text-center shadow-md"
+          className="rounded-3xl p-space-xl text-center shadow-lg"
+          style={{
+            backgroundColor: "rgb(255, 255, 255)",
+            border: "1px solid rgb(231, 223, 213)",
+          }}
         >
-          <h1 className="font-display text-3xl font-bold text-cini-cobalt dark:text-cini-krem">
+          <div className="w-16 h-16 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto mb-space-md text-3xl shadow-sm">
+            🏆
+          </div>
+
+          <h1 className="font-headline-lg text-headline-lg font-extrabold text-on-surface">
             {quizData.name} Mini Quiz
           </h1>
-          <p className="mt-2 text-sm text-cini-cobalt/70 dark:text-cini-krem/70">
-            {total} soru seni bekliyor. Sonucun herkese açık sıralamada görünecek —
-            önce bir isim gir.
+          <p className="mt-2 font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+            {total} soru ile bilginizi test edin. Sonucunuz şehir liderlik tablosunda yer alacak.
           </p>
 
-          <input
-            type="text"
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
-            placeholder="Adın (sıralamada görünecek)"
-            maxLength={30}
-            autoFocus
-            className="mt-6 w-full rounded-lg border border-cini-cobalt/20 dark:border-cini-krem/20 bg-white dark:bg-cini-cobalt/30 dark:text-cini-krem px-4 py-3 text-center text-cini-cobalt dark:text-cini-krem outline-none focus:border-cini-turkuaz"
-          />
-          {nameError && (
-            <p className="mt-2 text-sm text-cini-kiremit">{nameError}</p>
-          )}
+          <div className="mt-space-lg text-left">
+            <label className="font-label-sm text-label-sm font-bold uppercase tracking-wider text-on-surface-variant block mb-1">
+              Gezgin Adı
+            </label>
+            <input
+              type="text"
+              value={playerName}
+              onChange={(e) => setPlayerName(e.target.value)}
+              placeholder="Adınızı girin"
+              maxLength={30}
+              autoFocus={!user}
+              readOnly={!!user}
+              className={`w-full rounded-xl px-space-md py-3 text-on-surface font-body-md text-body-md outline-none ${
+                user
+                  ? "bg-teal-50 border border-teal-200 cursor-default"
+                  : "bg-surface-container-low border border-borderline focus:border-primary"
+              }`}
+            />
+            {user && (
+              <span className="text-[11px] text-primary mt-1 block">
+                Hesap adınız otomatik kullanılıyor.
+              </span>
+            )}
+            {nameError && (
+              <span className="text-xs text-error font-medium mt-1 block">
+                {nameError}
+              </span>
+            )}
+          </div>
 
           <button
             type="submit"
-            className="mt-6 w-full rounded-full bg-cini-kiremit px-6 py-3 font-display text-lg font-semibold text-cini-krem shadow-md transition hover:bg-cini-kiremit/90"
+            className="mt-space-xl w-full py-space-md rounded-xl bg-primary text-on-primary font-label-lg text-label-lg hover:bg-primary-container transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
           >
-            Quiz'e Başla →
+            <span>Teste Başla</span>
+            <span className="material-symbols-outlined text-[18px]">play_arrow</span>
           </button>
         </form>
       </div>
     );
   }
 
-  // --- SONUÇ + SIRALAMA EKRANI ---
+  // --- 2. SONUÇ VE SIRALAMA EKRANI ---
   if (phase === "finished") {
     const percent = Math.round((score / total) * 100);
     return (
-      <div className="mx-auto max-w-xl">
-        <div className="rounded-2xl border border-cini-altin/40 bg-white/70 dark:bg-cini-cobalt/40 p-8 text-center shadow-md">
-          <p className="text-5xl">{percent >= 70 ? "🏆" : percent >= 40 ? "👍" : "📚"}</p>
-          <h2 className="mt-4 font-display text-3xl font-bold text-cini-cobalt dark:text-cini-krem">
-            Quiz Tamamlandı, {playerName.trim()}!
+      <div className="max-w-xl mx-auto py-space-xl px-4 space-y-space-lg">
+        <div
+          className="rounded-3xl p-space-xl text-center shadow-lg"
+          style={{
+            backgroundColor: "rgb(255, 255, 255)",
+            border: "1px solid rgb(231, 223, 213)",
+          }}
+        >
+          <span className="text-5xl">
+            {percent >= 70 ? "🏆" : percent >= 40 ? "👍" : "📚"}
+          </span>
+
+          <h2 className="font-headline-lg text-headline-lg font-extrabold text-on-surface mt-space-sm">
+            Tebrikler, {playerName.trim()}!
           </h2>
-          <p className="mt-2 text-lg text-cini-cobalt/80 dark:text-cini-krem/80">
-            {quizData.name} quizinde{" "}
-            <span className="font-semibold text-cini-kiremit">
+
+          <p className="font-body-lg text-body-lg text-on-surface-variant mt-1">
+            {quizData.name} testinde{" "}
+            <strong className="text-primary font-bold">
               {score} / {total}
-            </span>{" "}
-            doğru cevap verdin. (%{percent}) · Süre: {formatDuration(timeTaken)}
+            </strong>{" "}
+            doğru yaptınız. (%{percent}) • Süre: {formatDuration(timeTaken)}
           </p>
 
           {submitting && (
-            <p className="mt-3 text-sm text-cini-cobalt/60 dark:text-cini-krem/60">Sonucun kaydediliyor…</p>
-          )}
-          {!submitting && myRank && (
-            <p className="mt-3 text-sm font-semibold text-cini-turkuaz">
-              Bu şehirde şu anda {myRank}. sıradasın!
+            <p className="mt-space-sm text-sm text-on-surface-variant animate-pulse">
+              Skorunuz liderlik tablosuna kaydediliyor...
             </p>
           )}
-          {submitError && (
-            <p className="mt-3 text-sm text-cini-kiremit">{submitError}</p>
+
+          {!submitting && myRank && (
+            <div className="mt-space-md inline-flex items-center gap-2 px-space-md py-1.5 rounded-full bg-teal-50 border border-teal-200 text-primary font-label-md text-label-md font-bold">
+              <span className="material-symbols-outlined text-[18px]">workspace_premium</span>
+              <span>Bu şehirde {myRank}. sıradasınız!</span>
+            </div>
           )}
 
-          <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+          {submitError && (
+            <p className="mt-2 text-xs text-error font-medium">{submitError}</p>
+          )}
+
+          <div className="mt-space-xl flex flex-col sm:flex-row justify-center gap-space-sm">
             <button
               onClick={handleRestart}
-              className="rounded-full bg-cini-turkuaz px-6 py-2 font-semibold text-white transition hover:bg-cini-turkuaz/90"
+              className="px-space-xl py-space-md rounded-xl bg-primary text-on-primary font-label-md text-label-md hover:bg-primary-container transition-all shadow-sm"
             >
               Tekrar Dene
             </button>
             <Link
               to={`/sehir/${slug}`}
-              className="rounded-full border border-cini-cobalt/30 dark:border-cini-krem/20 px-6 py-2 font-semibold text-cini-cobalt dark:text-cini-krem transition hover:bg-cini-cobalt/5 dark:bg-cini-krem/5"
+              className="px-space-xl py-space-md rounded-xl bg-surface-container text-on-surface font-label-md text-label-md hover:bg-surface-container-high transition-all border border-borderline"
             >
               Şehir Sayfasına Dön
             </Link>
           </div>
         </div>
 
-        <div className="mt-8">
-          <h3 className="mb-3 font-display text-2xl font-semibold text-cini-cobalt dark:text-cini-krem">
-            🏅 {quizData.name} Sıralaması
-          </h3>
-          {leaderboardLoading ? (
-            <p className="text-center text-sm text-cini-cobalt/60 dark:text-cini-krem/60">
-              Sıralama yükleniyor…
-            </p>
-          ) : (
-            <LeaderboardTable entries={leaderboard} highlightName={playerName.trim()} />
-          )}
+        {/* Liderlik Tablosu */}
+        <div
+          className="rounded-3xl p-space-xl shadow-lg space-y-space-md"
+          style={{
+            backgroundColor: "rgb(255, 255, 255)",
+            border: "1px solid rgb(231, 223, 213)",
+          }}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-amber-500">leaderboard</span>
+              <h3 className="font-title-lg text-title-lg font-bold text-on-surface">
+                {quizData.name} Liderlik Tablosu
+              </h3>
+            </div>
+            {leaderboardLoading && (
+              <span className="text-xs text-on-surface-variant animate-pulse">Güncelleniyor...</span>
+            )}
+          </div>
+
+          <LeaderboardTable entries={leaderboard} highlightName={playerName.trim()} />
         </div>
       </div>
     );
   }
 
-  // --- SORU EKRANI ---
+  // --- 3. AKTİF TEST (SORU) EKRANI ---
   return (
-    <div className="mx-auto max-w-xl">
-      <div className="mb-6 flex items-center justify-between">
-        <Link to={`/sehir/${slug}`} className="text-sm text-cini-turkuaz hover:underline">
-          ← {quizData.name} sayfasına dön
-        </Link>
-        <span className="text-sm font-medium text-cini-cobalt/60 dark:text-cini-krem/60">
-          Soru {current + 1} / {total}
-        </span>
-      </div>
+    <div className="max-w-xl mx-auto py-space-xl px-4">
+      <div
+        className="rounded-3xl p-space-xl shadow-lg space-y-space-lg"
+        style={{
+          backgroundColor: "rgb(255, 255, 255)",
+          border: "1px solid rgb(231, 223, 213)",
+        }}
+      >
+        {/* Üst İlerleme ve Bilgi */}
+        <div className="flex items-center justify-between border-b border-borderline pb-space-md">
+          <div>
+            <span className="font-label-sm text-label-sm uppercase tracking-wider text-primary font-bold">
+              {quizData.name} Bilgi Testi
+            </span>
+            <div className="font-headline-sm text-headline-sm font-bold text-on-surface">
+              Soru {current + 1} / {total}
+            </div>
+          </div>
+          <div className="text-right">
+            <span className="font-label-sm text-label-sm text-on-surface-variant block">Doğru</span>
+            <span className="font-headline-sm text-headline-sm text-primary font-bold">{score}</span>
+          </div>
+        </div>
 
-      <div className="mb-4 h-2 w-full overflow-hidden rounded-full bg-cini-cobalt/10 dark:bg-cini-krem/10">
-        <div
-          className="h-full bg-cini-kiremit transition-all duration-300"
-          style={{ width: `${((current + (selected !== null ? 1 : 0)) / total) * 100}%` }}
-        />
-      </div>
+        {/* Soru Metni */}
+        <div className="py-space-sm">
+          <h2 className="font-title-lg text-title-lg font-bold text-on-surface leading-relaxed">
+            {q.question}
+          </h2>
+        </div>
 
-      <div className="rounded-2xl border border-cini-altin/40 bg-white/70 dark:bg-cini-cobalt/40 p-6 shadow-md">
-        <h2 className="mb-5 font-display text-xl font-semibold text-cini-cobalt dark:text-cini-krem sm:text-2xl">
-          {q.question}
-        </h2>
+        {/* Şıklar */}
+        <div className="space-y-space-sm">
+          {q.options.map((option, idx) => {
+            const isChosen = selected === idx;
+            const isCorrect = idx === q.correctIndex;
+            let btnStyle = "bg-surface-container-low border-borderline text-on-surface hover:bg-surface-container";
 
-        <div className="space-y-3">
-          {q.options.map((option, i) => {
-            const isSelected = selected === i;
-            const isCorrect = i === q.correctIndex;
-            let stateClasses = "border-cini-cobalt/20 dark:border-cini-krem/20 bg-white dark:bg-cini-cobalt/30 dark:text-cini-krem hover:border-cini-turkuaz";
             if (selected !== null) {
               if (isCorrect) {
-                stateClasses = "border-green-600 bg-green-50";
-              } else if (isSelected && !isCorrect) {
-                stateClasses = "border-cini-kiremit bg-red-50";
+                btnStyle = "bg-emerald-50 border-emerald-500 text-emerald-900 font-bold";
+              } else if (isChosen) {
+                btnStyle = "bg-rose-50 border-rose-500 text-rose-900 font-bold";
               } else {
-                stateClasses = "border-cini-cobalt/10 dark:border-cini-krem/20 bg-white dark:bg-cini-cobalt/30 dark:text-cini-krem opacity-60";
+                btnStyle = "bg-surface-container-low/50 border-borderline text-on-surface-variant opacity-60";
               }
             }
+
             return (
               <button
-                key={i}
-                onClick={() => handleSelect(i)}
+                key={idx}
+                type="button"
+                onClick={() => handleSelect(idx)}
                 disabled={selected !== null}
-                className={`w-full rounded-lg border px-4 py-3 text-left text-sm font-medium text-cini-cobalt dark:text-cini-krem transition ${stateClasses}`}
+                className={`w-full p-space-md rounded-2xl border text-left font-body-md text-body-md transition-all flex items-center justify-between ${btnStyle}`}
               >
-                {option}
+                <span>{option}</span>
                 {selected !== null && isCorrect && (
-                  <span className="ml-2 text-green-700">✓ Doğru cevap</span>
+                  <span className="material-symbols-outlined text-emerald-600">check_circle</span>
                 )}
-                {selected !== null && isSelected && !isCorrect && (
-                  <span className="ml-2 text-cini-kiremit">✗ Yanlış</span>
+                {selected !== null && isChosen && !isCorrect && (
+                  <span className="material-symbols-outlined text-rose-600">cancel</span>
                 )}
               </button>
             );
           })}
         </div>
 
-        {selected !== null && q.explanation && (
-          <p className="mt-4 rounded-lg bg-cini-turkuaz/10 p-3 text-sm text-cini-cobalt/80 dark:text-cini-krem/80">
-            💡 {q.explanation}
-          </p>
-        )}
-
+        {/* Sonraki Soru Butonu */}
         {selected !== null && (
-          <button
-            onClick={handleNext}
-            className="mt-6 w-full rounded-full bg-cini-cobalt px-6 py-3 font-semibold text-cini-krem transition hover:bg-cini-cobalt/90 dark:bg-cini-krem/90"
-          >
-            {current + 1 < total ? "Sonraki Soru →" : "Sonucu Gör →"}
-          </button>
+          <div className="pt-space-md border-t border-borderline flex justify-end">
+            <button
+              onClick={handleNext}
+              type="button"
+              className="px-space-xl py-space-md rounded-xl bg-primary text-on-primary font-label-lg text-label-lg hover:bg-primary-container transition-all shadow-md flex items-center gap-2"
+            >
+              <span>{current + 1 < total ? "Sonraki Soru" : "Sonuçları Gör"}</span>
+              <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+            </button>
+          </div>
         )}
       </div>
     </div>
